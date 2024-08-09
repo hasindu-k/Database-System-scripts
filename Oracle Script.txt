@@ -1,0 +1,86 @@
+CREATE TYPE student_t AS OBJECT(
+sno CHAR(5),
+sname VARCHAR2(20),
+addr VARCHAR2(20)
+)
+/
+
+CREATE TABLE students OF student_t
+/
+
+INSERT INTO students VALUES (student_t('s123','Hasindu','Galle'))
+/
+INSERT INTO students VALUES (student_t('s124','Sadaruwan','Matara'))
+/
+INSERT INTO students VALUES (student_t('s125','Nalin','Kalutara'))
+/
+
+SELECT value(s) FROM students s;
+
+SELECT s.sno, s.addr FROM students s;
+
+
+
+
+DEPT and EMP Relationship 
+
+
+CREATE TYPE dept_t AS OBJECT(
+dno CHAR(5),
+dname VARCHAR2(20)
+)
+/
+
+CREATE TYPE emp_t AS OBJECT(
+eno CHAR(5),
+ename VARCHAR2(20),
+addr VARCHAR2(20),
+workdept REF dept_t
+)
+/
+
+CREATE TABLE dept OF dept_t
+(
+PRIMARY KEY(dno)
+)
+/
+
+CREATE TABLE emp OF emp_t
+(
+PRIMARY KEY(eno)
+)
+/
+
+INSERT INTO dept VALUES (dept_t('D1','IT'))
+/
+INSERT INTO dept VALUES (dept_t('D2','SE'))
+/
+
+
+INSERT INTO emp VALUES (emp_t('e123','Hasindu','Galle',
+(
+	select ref(d) 
+	from dept d 
+	where d.dname='IT'
+)
+))
+/
+INSERT INTO emp VALUES (emp_t('e124','Sadaruwan','Matara',
+(
+	select ref(d) 
+	from dept d 
+	where d.dname='IT'
+)
+))
+/
+INSERT INTO emp VALUES (emp_t('e125','Nalin','Kalutara',
+(
+	select ref(d) 
+	from dept d 
+	where d.dname='SE'
+)
+))
+/
+
+SELECT e.eno, e.ename, e.workdept.dname as dept
+FROM emp e
