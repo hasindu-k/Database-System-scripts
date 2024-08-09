@@ -1,0 +1,20 @@
+CREATE TYPE price_arr AS VARRAY(10) OF NUMBER(12,2)
+/
+
+CREATE TABLE pricelist (
+pno INTEGER,
+prices price_arr
+)
+/
+
+INSERT INTO pricelist VALUES(1,price_arr(2.34,3.23,8.97))
+/
+INSERT INTO pricelist VALUES(2,price_arr(93.75,56.87,78.25))
+/
+
+
+SELECT * FROM pricelist;
+
+SELECT p.pno, s.COLUMN_VALUE price 
+FROM pricelist p, TABLE(p.prices) s
+/
