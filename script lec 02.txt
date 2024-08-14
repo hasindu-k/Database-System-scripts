@@ -18,3 +18,4 @@ SELECT * FROM pricelist;
 SELECT p.pno, s.COLUMN_VALUE price 
 FROM pricelist p, TABLE(p.prices) s
 /
+
