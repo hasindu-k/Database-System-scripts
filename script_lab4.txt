@@ -1,35 +1,125 @@
---SYNTAX
+--(a) A method to compute the yield of stocks: Yield is the dividend expressed as a percentage of the current 
+price (yield = (dividend/current price) *100). Assume that all dividends are for a period of one year.
 
-ALTER TYPE type_name
-ADD MEMBER FUNCTION function_name RETURN data_type
+SELECT s.company, s.yield()
+FROM stocks s
+/
+
+--(b) A method to compute the current price of stocks in US dollars, taking the current exchange rate of AUD to 
+USD as an input parameter (assuming that the prices in the STOCKS table are in AUD).
+
+--(c) A method to count the number of exchanges where a given stock is traded.
+
+--a) b) c)
+--altogether type body for stock_t
+
+ALTER TYPE stock_t
+ADD MEMBER FUNCTION yield RETURN float
+CASCADE
+/
+ALTER TYPE stock_t
+ADD MEMBER FUNCTION AUDtoUSD(rate float) RETURN float
+CASCADE
+/
+ALTER TYPE stock_t
+ADD MEMBER FUNCTION no_of_trades RETURN integer
 CASCADE
 /
 
-CREATE OR REPLACE TYPE BODY type_name AS 
- MEMBER FUNCTION function_name RETURN data_type IS
+CREATE OR REPLACE TYPE BODY stock_t AS
+MEMBER FUNCTION yield RETURN float is
  BEGIN
-  
- END;
-END/
+  return ((self.last_dividend/self.current_price)*100);
+ END yield;
 
---EXAMPLE
+MEMBER FUNCTION AUDtoUSD(rate float) RETURN float IS
+ BEGIN
+  return (self.current_price*rate);
+ END AUDtoUSD;
 
-CREATE OR REPLACE TYPE PersonType AS OBJECT (
-    first_name VARCHAR2(50),
-    last_name  VARCHAR2(50)
-);
+MEMBER FUNCTION no_of_trades RETURN integer is
+countT integer;
+ BEGIN
+  select count(e.column_value) into countT
+  from table(self.exchange_trade) e;
+  return countT;
+ END no_of_trades;
+END;
+/
 
-ALTER TYPE PersonType
-ADD MEMBER FUNCTION get_full_name RETURN VARCHAR2
+--(d) A method to compute the purchase value of all the shares of a client (for each share purchased, purchase 
+value = purchase price * qty).
+
+--(e) A method to compute the total profit on all the shares of a client (for each share purchase, profit = 
+(current price - purchase price) * qty).
+
+--d) e)
+--altogether type body for client_t
+
+ALTER TYPE client_t
+ADD MEMBER FUNCTION totPurchaseValue RETURN float
+CASCADE
+/
+ALTER TYPE client_t
+ADD MEMBER FUNCTION TotProfit RETURN float
 CASCADE
 /
 
-CREATE OR REPLACE TYPE BODY PersonType AS 
-  MEMBER FUNCTION get_full_name RETURN VARCHAR2 IS
-  BEGIN
-    -- Function implementation
-    RETURN first_name || ' ' || last_name;
-  END; -- This closes the get_full_name function
-END; -- This closes the entire PersonType body
+CREATE OR REPLACE TYPE BODY client_t AS
+MEMBER FUNCTION totPurchaseValue RETURN float IS
+tot float;
+ BEGIN
+  select SUM(i.purchase_price*i.qty) into tot
+  from table(self.investments) i;
+  return tot;
+ END totPurchaseValue;
+
+MEMBER FUNCTION TotProfit RETURN float IS
+totProfit float;
+ BEGIN
+  select SUM((i.company.current_price- i.purchase_price)*i.qty) into totProfit
+  from table(self.investments) i;
+  return totProfit;
+ END TotProfit;
+END;
 /
 
+--2. Answer the following queries on STOCKS and CLIENTS tables. Use methods wherever possible.
+
+--(a) Get the yield of all stocks along with their current prices in US dollars, given an exchange rate of 0.74 USD 
+to an AUD. Display the name of the stock, the exchanges where the stock is traded, the stock’s yield and 
+the price in USD.
+
+select DISTINCT i.company.company, e.column_value, i.company.yield(), i.company.AUDtoUSD(0.74)
+from clients c, table(c.investments) i, table(i.company.exchange_trade) e
+/
+
+--(b) Find the company name, current price and the number of exchanges for shares that are traded on more than 
+one exchange, using one of the methods.
+
+select DISTINCT i.company.company, i.company.current_price, i.company.no_of_trades()
+from clients c, table(c.investments) i
+where i.company.no_of_trades() > 1
+/
+
+--(c) For each client, get the name, and the list of investments with stock name, yield, current price and earnings 
+per share. Use the method for computing yield in this query.
+
+select DISTINCT c.first_name fname, i.company.company stock, i.company.yield() yield, i.company.current_price current_price, i.company.earning earning
+from clients c, table(c.investments) i
+order by fname
+/
+
+--(d) Find the total purchase value of investments for all clients. Display client name and total value. Use the 
+method for computing purchase value in this query.
+
+select c.first_name fname, c.totPurchaseValue() total_value
+from clients c
+/
+
+--(e) For each client, list the book profit (or loss) on the total share investment. Use the method for computing 
+profit
+
+select c.first_name fname, c.TotProfit() total_Profit
+from clients c
+/
