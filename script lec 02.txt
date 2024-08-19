@@ -1,21 +1,72 @@
+-----------------------------------------------------------------------------
+VARRAY
+-----------------------------------------------------------------------------
+
 CREATE TYPE price_arr AS VARRAY(10) OF NUMBER(12,2)
 /
 
-CREATE TABLE pricelist (
+CREATE TYPE pricelist_t AS OBJECT (
 pno INTEGER,
 prices price_arr
 )
 /
 
-INSERT INTO pricelist VALUES(1,price_arr(2.34,3.23,8.97))
+CREATE TABLE pricelist OF pricelist_t
 /
-INSERT INTO pricelist VALUES(2,price_arr(93.75,56.87,78.25))
+
+INSERT INTO pricelist VALUES(pricelist_t(1, price_arr(2.34, 3.23, 8.97)))
+/
+INSERT INTO pricelist VALUES(pricelist_t(2, price_arr(93.75, 56.87, 78.25)))
 /
 
 
-SELECT * FROM pricelist;
+
+SELECT * FROM pricelist
+/
+	PNO	PRICES
+---------- ----------
+	1	PRICE_ARR(2.34, 3.23, 8.97)
+	2	PRICE_ARR(93.75, 56.87, 78.25)
 
 SELECT p.pno, s.COLUMN_VALUE price 
 FROM pricelist p, TABLE(p.prices) s
 /
 
+       PNO      PRICE
+---------- ----------
+         1       2.34
+         1       3.23
+         1       8.97
+         2      93.75
+         2      56.87
+         2      78.25
+
+SELECT p.pno, AVG(t.column_value) AS average_price
+FROM pricelist p, TABLE(p.prices) t
+GROUP BY p.pno
+/
+
+       PNO AVERAGE_PRICE
+---------- -------------
+         1    4.84666667
+         2         76.29
+
+-----------------------------------------------------------------------------
+Nested Tables
+-----------------------------------------------------------------------------
+
+select sum( h.hosChg ) + sum (h.docChg)
+from table
+	(select p.hospVisits
+	from patients p	
+	where p.id = '6777v'
+	) h
+/
+
+select sum( h.hosChg + h.docChg)
+from table
+	(select p.hospVisits
+	from patients p	
+	where p.id = '6777v'
+	) h
+/

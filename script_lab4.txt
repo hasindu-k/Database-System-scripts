@@ -1,0 +1,35 @@
+--SYNTAX
+
+ALTER TYPE type_name
+ADD MEMBER FUNCTION function_name RETURN data_type
+CASCADE
+/
+
+CREATE OR REPLACE TYPE BODY type_name AS 
+ MEMBER FUNCTION function_name RETURN data_type IS
+ BEGIN
+  
+ END;
+END/
+
+--EXAMPLE
+
+CREATE OR REPLACE TYPE PersonType AS OBJECT (
+    first_name VARCHAR2(50),
+    last_name  VARCHAR2(50)
+);
+
+ALTER TYPE PersonType
+ADD MEMBER FUNCTION get_full_name RETURN VARCHAR2
+CASCADE
+/
+
+CREATE OR REPLACE TYPE BODY PersonType AS 
+  MEMBER FUNCTION get_full_name RETURN VARCHAR2 IS
+  BEGIN
+    -- Function implementation
+    RETURN first_name || ' ' || last_name;
+  END; -- This closes the get_full_name function
+END; -- This closes the entire PersonType body
+/
+

@@ -1,0 +1,177 @@
+CREATE TYPE exchange_trade_arr AS VARRAY(5) OF VARCHAR2(20)
+/
+
+CREATE TYPE stock_t AS OBJECT(
+company VARCHAR2(15),
+current_price NUMBER(8,2),
+exchange_trade exchange_trade_arr,
+last_dividend NUMBER(8,2),
+earning NUMBER(8,2)
+)
+/
+CREATE TYPE address_t AS OBJECT (
+street_no VARCHAR2(5),
+street_name VARCHAR2(20),
+suburb VARCHAR2(20),
+state VARCHAR2(20),
+pin VARCHAR2(10)
+)
+/
+
+CREATE TYPE investment_t AS OBJECT (
+company REF stock_t,
+purchase_price NUMBER(8,2),
+purchase_date DATE,
+qty NUMBER
+)
+/
+
+CREATE TYPE investment_list AS TABLE OF investment_t
+/
+
+CREATE TYPE client_t AS OBJECT(
+first_name VARCHAR2(20),
+last_name VARCHAR2(20),
+address address_t,
+investments investment_list
+)
+/
+
+--table creation
+
+CREATE TABLE clients OF client_t(
+constraint clients_PK PRIMARY KEY(first_name,last_name),
+CONSTRAINT clients_FIRSTNAME_NN CHECK (first_name IS NOT NULL),
+CONSTRAINT clients_LASTNAME_NN CHECK (last_name IS NOT NULL))
+NESTED TABLE investments STORE AS client_investment_table
+/
+
+CREATE TABLE stocks OF stock_t(
+CONSTRAINT stocks_PK PRIMARY KEY(company)
+)
+/
+
+--insert sample data
+
+INSERT INTO stocks VALUES(
+stock_t('BHP', 10.50, exchange_trade_arr('Sydney','New York'),1.50,3.20)
+)
+/
+INSERT INTO stocks VALUES(
+stock_t('IBM', 70.00, exchange_trade_arr('New York','London','Tokyo'), 4.25, 10.00)
+)
+/
+INSERT INTO stocks VALUES(
+stock_t('INTEL', 76.50, exchange_trade_arr('New York','London'), 5.00, 12.40)
+)
+/
+INSERT INTO stocks VALUES(
+stock_t('FORD', 40.00, exchange_trade_arr('New York'), 2.00, 8.50)
+)
+/
+INSERT INTO stocks VALUES(
+stock_t('GM', 60.00, exchange_trade_arr('New York'), 2.50, 9.20)
+)
+/
+INSERT INTO stocks VALUES(
+stock_t('INFOSYS', 45.00, exchange_trade_arr('New York'), 3.00, 7.80)
+)
+/
+
+INSERT INTO clients VALUES(
+client_t('John','Smith',address_t('3','East Av','Bently','W A','6102'),investment_list(
+investment_t((SELECT REF(s)FROM stocks s WHERE s.company = 'BHP'), 12.00, '02-OCT-01', 1000),
+investment_t((SELECT REF(s) FROM stocks s WHERE s.company = 'BHP'), 10.50, '08-JUN-02', 2000),
+investment_t((SELECT REF(s) FROM stocks s WHERE s.company = 'IBM'), 58.00, '12-FEB-00', 500),
+investment_t((SELECT REF(s) FROM stocks s WHERE s.company = 'IBM'), 65.00, '10-APR-01', 1200),
+investment_t((SELECT REF(s) FROM stocks s WHERE s.company = 'INFOSYS'), 64.00, '11-AUG-01', 1000)))
+)
+/
+
+INSERT INTO clients VALUES(
+client_t('Jill', 'Brody', address_t('42','Bent St','Perth','W A', '6001'),investment_list(
+investment_t((SELECT REF(s) FROM stocks s WHERE s.company = 'INTEL'),35.00,'30-JAN-00', 300),
+investment_t((SELECT REF(s) FROM stocks s WHERE s.company = 'INTEL'),54.00,'30-JAN-01', 400),
+investment_t((SELECT REF(s) FROM stocks s WHERE s.company = 'INTEL'),60.00,'02-OCT-01', 200),
+investment_t((SELECT REF(s) FROM stocks s WHERE s.company = 'FORD'), 40.00, '05-OCT-99', 300),
+investment_t((SELECT REF(s) FROM stocks s WHERE s.company = 'GM'), 55.50, '12-DEC-00', 500)))
+)
+/
+
+--a)
+For each client, get the client’s name, and the list of the client’s investments with stock name, 
+current price, last dividend and earnings per share.
+
+SELECT c.first_name client_name, i.company.company stock_name, i.company.current_price current_price, i.company.last_dividend last_dividend, i.company.earning earning
+FROM clients c, TABLE(c.investments) i
+/
+
+--(b) Get the list of all clients and their share investments, showing the client name, and for each 
+stock held by the client, the name of the stock, total number of shares held, and the average 
+purchase price paid by the client for the stock. Average price is the total purchase value paid 
+by a client for a given stock (value=qty*price) divided by the total quantity held by the client.
+
+
+SELECT c.first_name client_name, i.company.company stock_name, SUM(i.qty) tot_shares , SUM(i.purchase_price*i.qty) / SUM(i.qty) average_purchase_price
+FROM clients c, TABLE (c.investments) i
+GROUP BY c.first_name, i.company.company 
+
+--(c) For each stock traded in New York, find the quantity held by each client, and its current value 
+(value=qty*price). Display stock (company) name, client name, number of shares held, and the 
+current value of the shares
+
+SELECT c.first_name, i.company.company, sum(i.qty) shares,sum(i.qty*i.company.current_price) current_value
+FROM clients c, TABLE(c.investments) i, TABLE(i.company.exchange_trade) e
+WHERE e.column_value = 'New York'
+GROUP BY c.first_name, i.company.company
+ORDER BY i.company.company
+/
+
+--(d) Find the total purchase value of investments for all clients. Display client name and total 
+purchase value of the client’s portfolio.
+
+SELECT c.first_name, SUM(i.qty*i.purchase_price) as tot_purchase
+FROM clients c, TABLE(c.investments) i
+GROUP BY c.first_name
+/
+
+--(e) For each client, list the book profit (or loss) on the total share investment. Book profit is the 
+total value of all stocks based on the current prices less the total amount paid for purchasing 
+them
+
+SELECT c.first_name, SUM( i.qty * (i.company.current_price - i.purchase_price)) as book_profit
+FROM clients c, TABLE(c.investments) i
+GROUP BY c.first_name
+/
+
+--4)Suppose John sold all his INFOSYS stocks to Jill, and 
+Jill sold all her GM stocks to John today at 
+the current prices. Update the database for these two transactions. Use the query 3(a) to check if the 
+update worked correctly. (Here, the term update does not necessarily mean using the update 
+statement of SQL.
+
+INSERT INTO 
+TABLE(SELECT c.investments FROM  clients c WHERE c.first_name = 'Jill') 
+(SELECT i.company, i.company.current_price, sysdate, i.qty
+FROM  clients c, TABLE(c.investments) i
+WHERE c.first_name = 'John' AND i.company.company = 'INFOSYS')
+/
+DELETE TABLE(SELECT c.investments FROM clients c WHERE c.first_name = 'John') i
+WHERE i.company.company = 'INFOSYS'
+/
+
+INSERT INTO
+TABLE(SELECT c.investments FROM  clients c WHERE c.first_name = 'John')
+(SELECT i.company, i.company.current_price, sysdate, i.qty
+FROM  clients c, TABLE(c.investments) i
+WHERE c.first_name = 'Jill' AND i.company.company = 'GM')
+/
+DELETE TABLE(SELECT c.investments FROM clients c WHERE c.first_name = 'Jill') i
+WHERE i.company.company = 'GM'
+/
+
+--verify
+SELECT c.first_name || ' ' || c.last_name AS name, i.company.company stock_name, i.company.current_price c_price, i.company.last_dividend l_dividend, i.purchase_date p_date, i.company.earning earning
+FROM clients c, TABLE(c.investments) i
+/
+
