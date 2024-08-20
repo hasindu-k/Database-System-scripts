@@ -90,16 +90,16 @@ END;
 to an AUD. Display the name of the stock, the exchanges where the stock is traded, the stock’s yield and 
 the price in USD.
 
-select DISTINCT i.company.company, e.column_value, i.company.yield(), i.company.AUDtoUSD(0.74)
-from clients c, table(c.investments) i, table(i.company.exchange_trade) e
+select s.company, e.column_value, s.yield(), s.AUDtoUSD(0.74)
+from stocks s, table(s.exchange_trade) e
 /
 
 --(b) Find the company name, current price and the number of exchanges for shares that are traded on more than 
 one exchange, using one of the methods.
 
-select DISTINCT i.company.company, i.company.current_price, i.company.no_of_trades()
-from clients c, table(c.investments) i
-where i.company.no_of_trades() > 1
+select s.company, s.current_price, s.no_of_trades()
+from stocks s, table(s.exchange_trade) e
+where s.no_of_trades() > 1
 /
 
 --(c) For each client, get the name, and the list of investments with stock name, yield, current price and earnings 
