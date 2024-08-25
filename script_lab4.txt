@@ -98,7 +98,7 @@ from stocks s, table(s.exchange_trade) e
 one exchange, using one of the methods.
 
 select s.company, s.current_price, s.no_of_trades()
-from stocks s, table(s.exchange_trade) e
+from stocks s
 where s.no_of_trades() > 1
 /
 
