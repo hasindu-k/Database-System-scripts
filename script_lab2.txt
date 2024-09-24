@@ -43,7 +43,7 @@ ADD constraint OREMP_WORKDEPT_FK FOREIGN KEY(WORKDEPT) REFERENCES ORDEPT
 /
 
 
---Inserting OREMP table data
+--Inserting ORDEPT table data
 
 insert into ORDEPT values(DEPT_T('A00', 'SPIFFY COMPUTER SERVICE DIV', null, null))
 /

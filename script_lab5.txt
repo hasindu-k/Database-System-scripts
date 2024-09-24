@@ -1,0 +1,73 @@
+TASK 01
+--------
+
+a)
+
+CREATE TYPE student_type AS OBJECT (
+sid CHAR(8),
+sname CHAR(6),
+phone CHAR(10) 
+) NOT FINAL
+/
+
+CREATE TYPE ug_type UNDER student_type (
+gpa real, 
+deptid char(6), 
+course varchar(10)
+)
+/
+
+b)
+
+INSERT INTO students VALUES (ug_type('12354326', 'Janet Paeres', '', 3.2,'CS01','InfoTech'))
+
+c)
+
+SELECT s.SID, s.SNAME 
+FROM students s
+WHERE TREAT(VALUE(s) AS ug_type).DEPTID = "CS01"
+
+
+TASK 02
+--------
+
+a) 
+--i)Find the average insurance premium on cars owned by customers aged between 20 and 25 years. Sysdate 
+contains current date and the function month_between(d1,d2) gives the number of months in decimals 
+between the dates d1 and d2 where d1>d2
+
+SELECT AVG(p.premium)
+FROM Policies p
+WHERE month_between(Sysdate,p.inscar.owner.birthdate)
+/
+
+
+--(ii) For each make and model of car, find the total claim amount on policies that expire between 1 Jan 2004 
+and 31 Dec 2004
+
+ii)
+SELECT p.inscar.make, p.inscar.model, SUM(c.amount) AS total_claim
+FROM Policies p, TABLE(p.claims) c
+WHERE p.edate BETWEEN ( 01-JAN-2004 AND 31-DEC-2004 )
+GROUP BY p.inscar.make, p.inscar.model
+/
+
+b)
+Write Oracle object SQL to insert a claim against an existing policy that has a pid of SL12354, given the
+following claim details: claim number: 001, claim date: 12 July 2004, claim amount: 2000, and customer id of 
+claimant: S25431. Assume that the claimant is already present as a customer in the database
+
+INSERT INTO TABLE(SELECT p.claims FROM Policies p WHERE p.pid = 'SL12354')
+VALUES(
+	Claim_t('001','12-JUL-2004',2000.00,
+		(SELECT REF(c)
+		FROM Customers c
+		WHERE c.cid = 'S25431')
+		)
+	)
+/
+
+
+
+
+

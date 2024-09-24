@@ -1,0 +1,242 @@
+Q1
+(a)
+Create Table EMP(
+  EmpNo char(6),
+  firstName varchar2(12) not null,
+  MidInit char(1) not null,
+  LastName varchar2(15) not null,
+  workDept char(3),
+  phoneNo char(9),
+  hireDate date,
+  job char(15),
+  EDLevel Number(2),
+  sex char(1),
+  birthday date,
+  salary Number(8,2),
+  bonus Number(8,2),
+  comm Number(8,2),
+  constraint pk_emp primary key (EmpNo),
+constraint fk_emp_dept foreign key (workDept) references dept(DeptNo)
+)
+/
+
+Create Table DEPT(
+  DeptNo char(3),
+  deptName varchar2(36) not null,
+  mgrNo char(6),
+  AdmrDept char(3),
+  constraint pk_dept primary key (DeptNo),
+constraint fk_dept_admrdept_deptno foreign key (AdmrDept) references dept(DeptNo)
+)
+/
+
+
+alter table dept add( 
+constraint fk_dept_emp foreign key (mgrNo) references EMP(EmpNo))
+/
+
+-- Inserting data to dept table
+
+insert into dept values('1','Admin','','');
+insert into dept values('2','Academic','','1');
+insert into dept values('3','CSD','','1');
+commit
+/
+
+-- Inserting data to emp table
+
+insert into emp values('111','Shiran','M', 'Wikramasinghe','3', '74747474', '01-Jan-2000','Manager','8','F','12-Jan-1970','30000','5000','15000');
+
+insert into emp values('100','Saman','K', 'Kumara','2', '67699099', '01-Jan-2000','Instructor','4','M','12-Jan-1970','10000','1000','5000');
+
+insert into emp values('101','Rukshan','A', 'Weerakoon','3', '88778099', '02-feb-2001','Engineer','5','M','02-Jan-1960','25000','2000','10000');
+
+insert into emp values('102','Anusha','P','Sandamalie','2', '33778011', '04-jun-2000','Lecturer','4','F','05-mar-1960','15000','1500','7000');
+
+insert into emp values('103','Suresh','R','Wikramasuriya','1', '77998011', '01-jan-2000','Acountant','3','M','06-mar-1975','9000','1000','4000');
+
+insert into emp values('104','Inoka','E','Edirithilaka','3','71123123','4-apr-2002','Programmer','3','F','5-jan-1976','15000','2000','3000');
+
+insert into emp values('105','Kamal','A','Prasanna','2','3345645','7-sep-2001','Lecturer','3','M','1-feb-1975','15000','1500','7000');
+
+insert into emp values('106','Harsha','U','Fernando','1','4134534','05-MAY-2000','Manager','5','F','5-May-1975','15000','2000','3000');
+
+insert into emp values('107','Ganga','S','Peshala','2','1467467','4-Apr-2000','Instructor','3','F','3-Mar-1977','10000','1000','5000');
+
+insert into emp values('108','Tharaka','H','Ranasighe','2','77300300','1-Apr-2002','Lecturer','2','M','3-Jun-1975','15000','1500','7000');
+
+insert into emp values('109','Amani','T','Sakunthala','2','77890890','4-Feb-2001','Instructor','1','F','2-Feb-1978','10000','1000','3000');
+
+insert into emp values('110','MAhesha','S','Kapurubandara','2','77111111','01-AUG-2000','Manager','7','F','20-JAN-1958','30000','5000','15000');
+
+commit
+/
+
+Q2
+(1)
+## Create PLAN_TABLE for execution plan
+
+create table PLAN_TABLE (
+	statement_id 	varchar2(30),
+	timestamp    	date,
+	remarks      	varchar2(80),
+	operation    	varchar2(30),
+	options       	varchar2(255),
+	object_node  	varchar2(128),
+	object_owner 	varchar2(30),
+	object_name  	varchar2(30),
+	object_instance numeric,
+	object_type     varchar2(30),
+	optimizer       varchar2(255),
+	search_columns  number,
+	id		numeric,
+	parent_id	numeric,
+	position	numeric,
+	cost		numeric,
+	cardinality	numeric,
+	bytes		numeric,
+	other_tag       varchar2(255),
+	partition_start varchar2(255),
+        partition_stop  varchar2(255),
+        partition_id    numeric,
+	other		long,
+	distribution    varchar2(30),
+	cpu_cost	numeric,
+	io_cost		numeric,
+	temp_space	numeric
+)
+/
+
+(2)
+EXPLAIN PLAN FOR 
+SELECT e.lastName, d.mgrno 
+FROM EMP e, DEPT d 
+WHERE d.AdmrDept = 'A00' 
+AND e.workDept = d.deptNo
+/
+#Explained
+
+##This query performs a join between the EMP and DEPT tables based on the condition that the workDept column in EMP matches the deptNo column in DEPT. Additionally, you are filtering the DEPT table where AdmrDept equals 'A00'.
+there are no indexes on the columns involved Oracle will likely perform full table scans on both the EMP and DEPT tables to find matching rows. This is a common approach when the database doesn’t have an efficient way to quickly look up the rows.
+
+(3)
+select '| Operation                 |  Name    |  Rows | Bytes|  Cost  | Pstart| Pstop |'  as "Plan Table" from dual
+union all
+select '--------------------------------------------------------------------------------' from dual
+union all
+select rpad('| '||substr(lpad(' ',1*(level-1))||operation||
+            decode(options, null,'',' '||options), 1, 27), 28, ' ')||'|'||
+       rpad(substr(object_name||' ',1, 9), 10, ' ')||'|'||
+       lpad(decode(cardinality,null,'  ',
+                decode(sign(cardinality-1000), -1, cardinality||' ', 
+                decode(sign(cardinality-1000000), -1, trunc(cardinality/1000)||'K', 
+                decode(sign(cardinality-1000000000), -1, trunc(cardinality/1000000)||'M', 
+                       trunc(cardinality/1000000000)||'G')))), 7, ' ') || '|' ||
+       lpad(decode(bytes, null,' ',
+                decode(sign(bytes-1024), -1, bytes||' ', 
+                decode(sign(bytes-1048576), -1, trunc(bytes/1024)||'K', 
+                decode(sign(bytes-1073741824), -1, trunc(bytes/1048576)||'M', 
+                       trunc(bytes/1073741824)||'G')))), 6, ' ') || '|' ||
+       lpad(decode(cost, null,' ',
+                decode(sign(cost-10000000), -1, cost||' ', 
+                decode(sign(cost-1000000000), -1, trunc(cost/1000000)||'M', 
+                       trunc(cost/1000000000)||'G'))), 8, ' ') || '|' ||
+       lpad(decode(partition_start, 'ROW LOCATION', 'ROWID', 
+            decode(partition_start, 'KEY', 'KEY', decode(partition_start, 
+            'KEY(INLIST)', 'KEY(I)', decode(substr(partition_start, 1, 6), 
+            'NUMBER', substr(substr(partition_start, 8, 10), 1, 
+            length(substr(partition_start, 8, 10))-1), 
+            decode(partition_start,null,' ',partition_start)))))||' ', 7, ' ')|| '|' ||
+       lpad(decode(partition_stop, 'ROW LOCATION', 'ROW L', 
+          decode(partition_stop, 'KEY', 'KEY', decode(partition_stop, 
+          'KEY(INLIST)', 'KEY(I)', decode(substr(partition_stop, 1, 6), 
+          'NUMBER', substr(substr(partition_stop, 8, 10), 1, 
+          length(substr(partition_stop, 8, 10))-1), 
+          decode(partition_stop,null,' ',partition_stop)))))||' ', 7, ' ')||'|' as "Explain plan"
+from plan_table
+start with id=0 and timestamp = (select max(timestamp) from plan_table 
+                                 where id=0)
+connect by prior id = parent_id 
+        and prior nvl(statement_id, ' ') = nvl(statement_id, ' ')
+        and prior timestamp <= timestamp
+union all
+select '--------------------------------------------------------------------------------' from dual
+/
+
+## 7 rows selected.
+Full scan both tables
+
+(4)
+CREATE INDEX XWORKDEPT ON EMP(workDept)
+/
+
+## increased Selected rows
+12 rows selected.
+After the index: Oracle uses an INDEX RANGE SCAN on the newly created index XWORKDEPT, resulting in faster query performance by scanning fewer rows.
+
+(5)
+CREATE INDEX XADMRDEPT ON DEPT(AdmrDept)
+/
+
+## 12 rows selected.
+ improving the performance by reducing the number of rows scanned. This change leads to faster query execution and reduced resource usage (CPU, I/O), making the query more efficient.
+By indexing frequently filtered columns like admrdept, you allow Oracle to optimize queries and avoid full table scans.
+
+(6)
+EXPLAIN PLAN FOR 
+SELECT e.lastName, d.mgrno 
+FROM EMP e, DEPT d 
+WHERE d.AdmrDept = 'A00' 
+AND e.workDept = d.deptNo 
+AND e.job = 'DESIGNER'
+/
+
+##Explained 
+
+CREATE INDEX XJOB ON EMP(job)
+/
+
+## Before the index: Oracle performed a full table scan to filter employees by 
+job = 'DESIGNER', which is inefficient for large tables.
+After the index: Oracle used an INDEX RANGE SCAN on XJOB, reducing the number of rows scanned and improving query performance.
+
+(7)
+EXPLAIN PLAN FOR 
+SELECT AVG(e.salary)
+FROM EMP e
+WHERE e.edlevel > 10
+AND e.salary BETWEEN 30000 AND 70000
+/
+
+CREATE INDEX XEDLEVELSALARY ON EMP (edlevel,salary)
+/
+
+## 6 rows selected
+ Compare the plan before and after creating the index. The optimizer might now prefer an index scan instead of full table scan
+
+INDEX RANGE SCAN 
+The Rows have decreased from 12 to 6, which means that after applying the index, Oracle is scanning fewer rows because the index is helping to filter the data more efficiently. which improves performance by reducing unnecessary scans.
+
+(8)
+SELECT index_name
+FROM user_indexes
+WHERE table_name = 'Emp'
+/
+
+## Use DESC user_indexes to see other attributes that can provide additional information about indexes on the table 
+
+
+(9)
+EXPLAIN PLAN helps you understand how Oracle will execute a query, giving insight into performance bottlenecks. Shows the query execution path but not the reasoning behind Oracle's decisions.
+
+Without indexes: Oracle uses full table scans.
+
+Indexes are critical for improving performance, particularly for large datasets.
+ It may switch to index range scans or index-only plans, improving performance.
+
+Index Range Scans: Use the index to find rows and then access the table to retrieve the full data.
+Index-Only Plans: Retrieve all required data directly from the index, avoiding access to the main table.
+
+Not all queries benefit from indexes. It's essential to test using EXPLAIN PLAN to ensure the optimizer is using indexes effectively.
+
+Index-only plans are ideal for queries where all requested columns are covered by the index, leading to faster query execution.
